@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="//g.alicdn.com/mtb/lib-bootstrap/3.0.3/css/bootstrap.min.css" />
+    <script src="//g.alicdn.com/mtb/??lib-login/1.5.0/login.js,lib-promise/3.1.3/polyfillB.js"></script>
+    <script src="//g.alicdn.com/mtb/lib-3rd/??jquery/jquery.min.js"></script>
+    <script src="./bundle.js"></script>
+    <style>
+        .container {
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <section class="jumbotron">
+        <div class="container">
+            <h1 class="center">EMAS ACCS H5 SDK</h1>
+        </div>
+    </section>
+    <div class="container">
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="form-group">
+                    <label for="appKey">appKey</label>
+                    <input type="text" class="form-control" id="appKey" value='' placeholder="appKey">
+                </div>
+                <div class="form-group">
+                    <label for="aserverProxy">aserverProxy</label>
+                    <input type="text" class="form-control" id="aserverProxy" value=''
+                        placeholder="accs 服务地址">
+                </div>
+                <div class="form-group">
+                    <label for="ports">ports</label>
+                    <input type="text" class="form-control" id="ports" value='' placeholder="accs 端口号">
+                </div>
+                <div class="form-group">
+                    <label for="userId">userId</label>
+                    <input type="text" class="form-control" id="userId" value='' placeholder="用户ID">
+                </div>
+                <div class="form-group">
+                    <label for="serviceId">serviceId</label>
+                    <input type="text" class="form-control" id="serviceId" value=""
+                        placeholder="业务使用的serviceId">
+                </div>
+                <div class="form-group">
+                    <label for="data">数据</label>
+                    <input type="text" class="form-control" id="data" value='Hello Accs' placeholder="发送的数据">
+                </div>
+                <div class="form-group">
+                    <label for="headers">扩展头</label>
+                    <input type="text" class="form-control" id="headers" value='{"4":"hello  world"}'
+                        placeholder="发送的Header">
+                </div>
+                <button class="btn btn-primary" id="connect">连接</button>
+                <button class="btn btn-primary" id="send">发送</button>
+                <button class="btn btn-primary" id="close">断开连接</button>
+                <button class="btn btn-primary" id="reconnect">测试重连</button>
+                <button class="btn btn-primary" id="clean">clean</button>
+            </div>
+        </div>
+    </div>
+    <div class="container">
+        <div class="row">
+            <div class="col-sm-12">
+                <textarea rows="50" cols="100" id="result"></textarea>
+            </div>
+        </div>
+    </div>
+    <script>
+        var test;
+
+        function logResult(msg) {
+            $('#result').append(msg + "\n");
+        }
+
+        $('#clean').on('click', function (e) {
+            $('#result').html("");
+        })
+
+        $('#send').on('click', function (e) {
+            if (test) {
+                var serviceId = $('#serviceId').val();
+                var data = $('#data').val();
+                var headers = $('#headers').val();
+                if (headers && typeof headers === 'string') {
+                    headers = JSON.parse(headers);
+                }
+                test.send(serviceId, data, { headers: headers, base64Encode: true }).then(function (resp) {
+                    logResult('发送消息和 extHeader 成功！')
+                    logResult(JSON.stringify(resp.dataId))
+                    logResult('Data send success, server response: ')
+                    logResult(JSON.stringify(resp, null, 4))
+                    logResult('resp data is ')
+                    logResult(resp.getText())
+                }, function (e) {
+                    logResult('send err' + e)
+                })
+            } else {
+                logResult("连接已断开")
+            }
+        })
+
+        $('#close').on('click', function (e) {
+            if (test) {
+                test.close()
+                test = null
+                logResult("断开连接")
+            } else {
+                logResult("连接已断开")
+            }
+        })
+
+        $('#reconnect').on('click', function (e) {
+            if (test) {
+                var serviceId = $('#serviceId').val();
+                var data = $('#data').val();
+                // 主动关闭连接
+                test._connection.close();
+                setTimeout(() => {
+                    test.send(serviceId, data).then(function (resp) {
+                        logResult('发送消息 成功！')
+                        logResult(JSON.stringify(resp.dataId))
+                        logResult('Data send success, server response: ')
+                        logResult(JSON.stringify(resp, null, 4))
+
+                    }, function (e) {
+                        logResult('send err' + e)
+                    })
+                }, 4000);
+            } else {
+                logResult("连接已断开")
+            }
+        })
+
+
+
+        $('#connect').on('click', function (e) {
+            var appKey = $('#appKey').val();
+            var aserverProxy = $('#aserverProxy').val();
+            var ports = $('#ports').val();
+            var userId = $('#userId').val();
+            var serviceId = $('#serviceId').val();
+            var data = $('#data').val();
+            var headers = $('#headers').val();
+
+            if (headers && typeof headers === 'string') {
+                headers = JSON.parse(headers);
+            }
+
+            lib.emasAccs.init({
+                appkey: appKey,
+                aserverProxy: aserverProxy,
+                ports: ports,
+                m_params: {
+                    userId: userId
+                },
+                reconnect: true, // 标示看起断连重连，开启重连必须设置此参数
+                reconnectInterval: 1000, // ms 断连的间隔，即断连 2s 后进行重连。默认 2s 非必须
+                // 新增参数
+                accsHeartbeat: true,
+                noSign: false, // 不加签， 默认加签
+                debug: true
+            }).then(function (con) {
+                logResult("连接成功, 开始接受"+serviceId+"消息")
+                logResult("deviceId is "+lib.emasAccs.getAccsDeviceId())
+                test = con;
+                /*
+                    订阅下行数据. 返回的response对象有两个方法
+                     - 对于utf8编码的字符串数据可以使用 resp.getText()获得文本内容
+                     - 其他类型的数据请使用 resp.getBinaryArray()
+                */
+                con.onMessage(serviceId, function (resp) {
+                    // AServer 下发特殊头显示 resp 会多出 extHeader 和 decodedExtHeader， extHeader 为 AServer 下发的 base64 加密的源头。decodedExtHeader 为 SDK base64 解密后的头
+                    console.log(resp);
+                    console.log(resp.getText());
+                    logResult("收到消息")
+                    logResult(JSON.stringify(resp.getText(), null, '  '))
+                });
+
+                //连接出错事件
+                con.onError = function (e) {
+                    logResult('webSocket onerror' + e)
+                }
+
+                //连接关闭事件
+                con.onClose = function (code) {
+                    logResult('webSocket onclose' + code)
+                }
+
+                // 心跳异常
+                con.onHeartbeatError = function () {
+                    logResult('心跳异常');
+                }
+
+                // 连接重连事件
+                con.onReconnect = function (newCon) {
+                    logResult(newCon);
+                    logResult('webSocket onReconnect')
+                }
+            }, function (error) {
+                //ACCS初始化失败
+                logResult('accs init fail '+error)
+            });
+        })
+    </script>
+</body>
+
+</html>

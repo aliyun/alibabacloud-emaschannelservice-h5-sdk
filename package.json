@@ -1,0 +1,43 @@
+{
+  "name": "@alicloud/emaschannelservice-js",
+  "description": "EMAS ChannelService H5 SDK",
+  "version": "1.0.0",
+  "files": [
+    "lib/"
+  ],
+  "keywords": [
+    "lib",
+    "mtb",
+    "javascript",
+    "es6",
+    "es2015"
+  ],
+  "scripts": {
+    "build": "rm -rf lib && babel src --out-dir lib && tnpm run bundle && npm run uglifyjs && npm run copy",
+    "bundle": "webpack --config webpack.config.js",
+    "uglifyjs": "mkdir -p publish && node_modules/.bin/uglifyjs samples/bundle.js -o publish/accs.js",
+    "copy": "cp -r publish lib/",
+    "prepare": "npm run build"
+  },
+  "dependencies": {
+    "fingerprintjs": "^0.5.3"
+  },
+  "devDependencies": {
+    "babel-cli": "~6.4.5",
+    "babel-core": "~6.4.5",
+    "babel-loader": "~6.2.4",
+    "babel-preset-es2015": "~6.3.13",
+    "chai": "~3.4.1",
+    "eslint": "~2.1.0",
+    "gitbook-cli": "~1.0.1",
+    "isparta": "~4.0.0",
+    "json-loader": "^0.5.4",
+    "mocha": "~2.4.5",
+    "serve": "~1.4.0",
+    "uglify-js": "^3.1.4",
+    "uglifyjs": "^2.4.10",
+    "watch-cli": "~0.2.1",
+    "webpack": "~1.13.0"
+  },
+  "main": "./lib/index.js"
+}
